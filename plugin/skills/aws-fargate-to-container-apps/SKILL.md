@@ -1,9 +1,9 @@
 ---
 name: aws-fargate-to-container-apps
-description: "Migrate containerized workloads from AWS Fargate to Azure Container Apps with assessment reports and deployment guidance. WHEN: migrate Fargate to Azure, migrate AWS containers to Azure, Fargate to Container Apps, assess AWS ECS migration, convert AWS Fargate to Azure, cross-cloud container migration from AWS, migrate ECS tasks to Azure Container Apps."
+description: "Migrate AWS Fargate (ECS/EKS) workloads to Azure Container Apps with assessment, service mapping, and deployment guidance. WHEN: migrate Fargate to Container Apps, migrate ECS tasks to Container Apps, Fargate to ACA, convert Fargate task definitions to Container Apps, assess Fargate workload for Azure. DO NOT USE FOR: general AWS-to-Azure migration (use azure-cloud-migrate), new Container Apps deployments without migration (use azure-prepare)."
 license: MIT
 metadata:
-  version: "1.0.1"
+  version: "1.0.0"
   author: Microsoft
 ---
 
@@ -80,7 +80,7 @@ If the user is unsure, provide safe defaults or guide discovery:
    - Recommended Azure services
    - Required changes and considerations
 
-📋 **See detailed assessment checklist**: [references/assessment-guide.md](references/assessment-guide.md)
+**See detailed assessment checklist**: [references/assessment-guide.md](references/assessment-guide.md)
 
 ### Phase 2: Service Mapping
 
@@ -153,7 +153,7 @@ Map AWS Fargate components to Azure equivalents:
    - Logging and monitoring
    - Performance comparison
 
-🚀 **See detailed deployment instructions**: [references/deployment-guide.md](references/deployment-guide.md)
+**See detailed deployment instructions**: [references/deployment-guide.md](references/deployment-guide.md)
 
 ### Phase 6: Optimization
 
