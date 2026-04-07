@@ -57,13 +57,13 @@ docker push <registry-name>.azurecr.io/<image-name>:<tag>
 
 ```bash
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Configuration
-AWS_ACCOUNT_ID="123456789012"
-AWS_REGION="us-east-1"
+AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-<aws-account-id>}"
+AWS_REGION="${AWS_REGION:-<aws-region>}"
 ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-ACR_NAME="myregistry"
+ACR_NAME="${ACR_NAME:-<acr-name>}"
 ACR_REGISTRY="${ACR_NAME}.azurecr.io"
 
 # Array of images to migrate
@@ -142,32 +142,35 @@ az containerapp env create \
 
 ### Step 3: Configure Virtual Network (Optional)
 
-**NOTE**: If you need VNet integration, create the VNet and subnet BEFORE Step 2, then use `--infrastructure-subnet-resource-id` when creating the Container Apps environment in Step 2. Alternatively, recreate the environment with VNet support.
+> ⚠️ **Warning:** VNet integration must be configured at environment creation time. You cannot add VNet to an existing environment. Choose **one** of the paths below.
+
+**Option A: Environment WITHOUT VNet** (simpler, use Step 2 as-is)
+
+No changes needed — the environment created in Step 2 uses the default Azure-managed network.
+
+**Option B: Environment WITH VNet** (replace Step 2 with this)
 
 ```bash
-# Create VNet and subnet
+# Create VNet and subnet (minimum /27 for workload profiles, /23 for consumption-only)
 az network vnet create \
-  --resource-group myapp-rg \
-  --name myapp-vnet \
+  --resource-group <resource-group> \
+  --name <vnet-name> \
   --address-prefix 10.0.0.0/16 \
   --subnet-name container-apps-subnet \
-  --subnet-prefix 10.0.0.0/23
+  --subnet-prefix 10.0.0.0/27
 
 # Get subnet ID
 SUBNET_ID=$(az network vnet subnet show \
-  --resource-group myapp-rg \
-  --vnet-name myapp-vnet \
+  --resource-group <resource-group> \
+  --vnet-name <vnet-name> \
   --name container-apps-subnet \
   --query id -o tsv)
 
-# If you haven't created the environment yet, include --infrastructure-subnet-resource-id in Step 2
-# Otherwise, you'll need to delete and recreate the environment with VNet support:
-az containerapp env delete --name myapp-env --resource-group myapp-rg --yes
-
+# Create Container Apps environment WITH VNet
 az containerapp env create \
-  --name myapp-env \
-  --resource-group myapp-rg \
-  --location eastus \
+  --name <environment-name> \
+  --resource-group <resource-group> \
+  --location <location> \
   --logs-workspace-id $LOG_WORKSPACE_ID \
   --logs-workspace-key $LOG_WORKSPACE_KEY \
   --infrastructure-subnet-resource-id $SUBNET_ID
@@ -298,6 +301,7 @@ properties:
     secrets:
       - name: db-password
         keyVaultUrl: https://myapp-kv.vault.azure.net/secrets/db-password
+        identity: /subscriptions/.../resourceGroups/myapp-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/myapp-identity
     registries:
       - server: myregistry.azurecr.io
         identity: /subscriptions/.../resourceGroups/myapp-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/myapp-identity

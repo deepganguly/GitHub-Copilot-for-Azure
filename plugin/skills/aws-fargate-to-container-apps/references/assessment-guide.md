@@ -158,6 +158,7 @@ properties:
     secrets:
       - name: db-password
         keyVaultUrl: https://myvault.vault.azure.net/secrets/db-password
+        identity: <user-assigned-identity-resource-id>
   template:
     containers:
       - name: app
@@ -189,6 +190,8 @@ properties:
 | CloudWatch Logs | Azure Monitor Logs | Auto-configured |
 | CloudWatch Metrics | Azure Monitor Metrics | Auto-configured |
 | X-Ray | Application Insights | SDK change |
+
+> 💡 **Tip:** This template is populated by the AI agent during the assessment phase. The agent analyzes your AWS configuration files, extracts values, and fills in each section automatically. Sections marked with `[brackets]` are placeholders the agent will replace with actual values from your workload.
 
 ## Assessment Report Template
 
