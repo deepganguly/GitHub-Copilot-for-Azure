@@ -162,6 +162,27 @@ az containerapp env create \
   --logs-workspace-id $LOG_ID --logs-workspace-key $LOG_KEY
 ```
 
+### PowerShell
+
+```powershell
+# Resource group
+az group create --name myapp-rg --location eastus
+
+# Log Analytics
+az monitor log-analytics workspace create `
+  --resource-group myapp-rg --workspace-name myapp-logs --location eastus
+
+$workspace = az monitor log-analytics workspace show `
+  --resource-group myapp-rg --workspace-name myapp-logs | ConvertFrom-Json
+$keys = az monitor log-analytics workspace get-shared-keys `
+  --resource-group myapp-rg --workspace-name myapp-logs | ConvertFrom-Json
+
+# Container Apps Environment
+az containerapp env create `
+  --name myapp-env --resource-group myapp-rg --location eastus `
+  --logs-workspace-id $workspace.customerId --logs-workspace-key $keys.primarySharedKey
+```
+
 ### VNet Integration (if using NetworkPolicies)
 
 > **Note**: Skip basic environment creation if using VNet. Choose one path.
@@ -171,7 +192,7 @@ az containerapp env create \
 az network vnet create \
   --resource-group myapp-rg --name myapp-vnet \
   --address-prefix 10.0.0.0/16 \
-  --subnet-name aca-subnet --subnet-prefix 10.0.0.0/23
+  --subnet-name aca-subnet --subnet-prefix 10.0.0.0/27
 
 SUBNET_ID=$(az network vnet subnet show --resource-group myapp-rg \
   --vnet-name myapp-vnet --name aca-subnet --query id -o tsv)
@@ -181,6 +202,22 @@ az containerapp env create \
   --name myapp-env --resource-group myapp-rg --location eastus \
   --logs-workspace-id $LOG_ID --logs-workspace-key $LOG_KEY \
   --infrastructure-subnet-resource-id $SUBNET_ID
+```
+
+#### PowerShell
+
+```powershell
+az network vnet create `
+  --resource-group myapp-rg --name myapp-vnet --address-prefix 10.0.0.0/16 `
+  --subnet-name aca-subnet --subnet-prefix 10.0.0.0/27
+
+$subnet = az network vnet subnet show --resource-group myapp-rg `
+  --vnet-name myapp-vnet --name aca-subnet | ConvertFrom-Json
+
+az containerapp env create `
+  --name myapp-env --resource-group myapp-rg --location eastus `
+  --logs-workspace-id $workspace.customerId --logs-workspace-key $keys.primarySharedKey `
+  --infrastructure-subnet-resource-id $subnet.id
 ```
 
 ## Phase 5: Migrate Secrets
@@ -230,6 +267,19 @@ ACR_ID=$(az acr show --name $ACR_NAME --query id -o tsv)
 az role assignment create --assignee $PRINCIPAL_ID --role AcrPull --scope $ACR_ID
 ```
 
+### PowerShell
+
+```powershell
+az identity create --name myapp-id --resource-group myapp-rg --location eastus
+
+$identity = az identity show --name myapp-id --resource-group myapp-rg | ConvertFrom-Json
+
+az keyvault set-policy --name myapp-kv --object-id $identity.principalId --secret-permissions get list
+
+$acr = az acr show --name $ACR_NAME | ConvertFrom-Json
+az role assignment create --assignee $identity.principalId --role AcrPull --scope $acr.id
+```
+
 ## Phase 6: Generate and Deploy Container App
 
 ### Kubernetes Deployment → Container App Mapping
@@ -270,6 +320,24 @@ az containerapp create \
   --scale-rule-name http --scale-rule-type http --scale-rule-http-concurrency 80
 ```
 
+### PowerShell
+
+```powershell
+$secret = az keyvault secret show --vault-name myapp-kv --name password | ConvertFrom-Json
+
+az containerapp create `
+  --name my-app --resource-group myapp-rg --environment myapp-env `
+  --image "$ACR_NAME.azurecr.io/app:v1.0" `
+  --target-port 8080 --ingress external `
+  --cpu 1.0 --memory 2Gi `
+  --min-replicas 2 --max-replicas 10 `
+  --user-assigned $identity.id --registry-identity $identity.id `
+  --registry-server "$ACR_NAME.azurecr.io" `
+  --secrets "password=keyvaultref:$($secret.id),identityref:$($identity.id)" `
+  --env-vars "ENV=prod" "DB_PASSWORD=secretref:password" `
+  --scale-rule-name http --scale-rule-type http --scale-rule-http-concurrency 80
+```
+
 ## Phase 7: Validation
 
 ```bash
@@ -284,6 +352,17 @@ curl https://$FQDN/health
 az containerapp logs show --name my-app --resource-group myapp-rg --follow
 
 # Monitor replicas
+az containerapp replica list --name my-app --resource-group myapp-rg --revision latest
+```
+
+### PowerShell
+
+```powershell
+$app = az containerapp show --name my-app --resource-group myapp-rg | ConvertFrom-Json
+Invoke-WebRequest -Uri "https://$($app.properties.configuration.ingress.fqdn)/health"
+
+az containerapp logs show --name my-app --resource-group myapp-rg --follow
+
 az containerapp replica list --name my-app --resource-group myapp-rg --revision latest
 ```
 

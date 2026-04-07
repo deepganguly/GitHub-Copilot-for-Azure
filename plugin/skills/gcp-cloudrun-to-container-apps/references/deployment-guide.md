@@ -75,6 +75,8 @@ az containerapp env create `
   --logs-workspace-id $workspace.customerId --logs-workspace-key $keys.primarySharedKey
 ```
 
+> ⚠️ **Warning:** VNet integration must be configured at environment creation time. If you need VNet, skip the environment creation above and use the VNet integration section below instead. You cannot add VNet to an existing environment.
+
 ### VNet Integration
 
 #### Bash
@@ -126,7 +128,8 @@ rm -f "$SECRET_FILE"
 az keyvault create --name myapp-kv --resource-group myapp-rg --location eastus
 
 $secretFile = New-TemporaryFile
-gcloud secrets versions access latest --secret=db-pw --project=$env:GCP_PROJECT | Out-File -FilePath $secretFile.FullName -Encoding utf8
+$secretValue = gcloud secrets versions access latest --secret=db-pw --project=$GCP_PROJECT
+[System.IO.File]::WriteAllText($secretFile.FullName, $secretValue)
 az keyvault secret set --vault-name myapp-kv --name db-pw --file $secretFile.FullName
 Remove-Item $secretFile.FullName -Force
 ```

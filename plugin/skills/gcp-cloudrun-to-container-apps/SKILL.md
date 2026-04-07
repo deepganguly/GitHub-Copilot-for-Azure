@@ -36,24 +36,27 @@ Cloud Run location, target sub/RG/region, VNet (yes/no), scaling (min/max)
 
 **Phase 1: Assessment** — Analyze config ([assessment-guide.md](references/assessment-guide.md))
 
-**Phase 2: Images** — GCR/Artifact Registry → ACR
+**Phase 2: Image Migration** — GCR/Artifact Registry → ACR
 
-**Phase 3: Config** — Convert YAML, secrets → Key Vault, IaC
+**Phase 3: Configuration** — Convert YAML, secrets → Key Vault, IaC
 
-**Phase 4: Deploy** — Container Apps, ingress/scaling ([deployment-guide.md](references/deployment-guide.md))
+**Phase 4: Deployment** — Container Apps, ingress/scaling ([deployment-guide.md](references/deployment-guide.md))
 
 ## MCP Tools
 
-- `mcp_azure_mcp_documentation({resource: "container-apps"})`
-- `mcp_azure_mcp_get_bestpractices({resource: "container-apps"})`
+| Tool | Parameters | Required | Example |
+|------|-----------|----------|---------|
+| `mcp_azure_mcp_documentation` | `resource: "container-apps"` | Yes | `await mcp_azure_mcp_documentation({resource: "container-apps", topic: "ingress"})` |
+| `mcp_azure_mcp_get_bestpractices` | `resource: "container-apps"`, `action: "deploy"` | Yes | `await mcp_azure_mcp_get_bestpractices({resource: "container-apps", action: "deploy"})` |
 
 ## Error Handling
 
-| Error | Fix |
-|-------|-----|
-| ACR unauthorized | `az acr login` |
-| Key Vault forbidden | Grant managed identity access |
-| Env exists | Use existing or rename |
+| Error | Message Contains | Resolution |
+|-------|------------------|------------|
+| ACR auth failure | "unauthorized" | Run `az acr login --name <acr>` or verify managed identity ACRPull role |
+| Key Vault access denied | "forbidden" | Grant managed identity Key Vault Secrets User role or set-policy |
+| Environment exists | "already exists" | Use existing environment or choose a different name |
+| Image pull failure | "ImagePullBackOff" | Verify image exists in ACR and registry credentials are configured |
 
 ## Done
 
